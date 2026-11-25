@@ -1,0 +1,28 @@
+[package]
+name = "pg-debugger-gui"
+version = "0.3.4"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[features]
+default = ["desktop"]
+desktop = ["dep:gtk", "dep:sourceview5"]
+local-server-tests = []
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.10", optional = true }
+pg-debugger = { path = ".." }
+pg-debugger-core = { path = "../core" }
+postgres = "0.19.14"
+sourceview5 = { version = "0.10", optional = true }
+
+[[bin]]
+name = "pg-debugger-gui"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[[test]]
+name = "core_disconnect"
+path = "tests/core_disconnect.rs"
+required-features = ["local-server-tests"]

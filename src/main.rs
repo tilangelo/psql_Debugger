@@ -1,9 +1,17 @@
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+    mpsc::{RecvTimeoutError, channel},
+};
+use std::time::Duration;
+#[cfg(windows)]
 mod demo;
-mod pldbg;
+#[cfg(target_os = "linux")]
+use pg_debugger::demo_linux as demo;
 mod preflight;
 mod target;
 
-use pldbg::{Breakpoint, DebugEvent, PldbgClient};
+use pg_debugger::pldbg::{Breakpoint, DebugEvent, PldbgClient};
 use std::{
     env,
     error::Error,
@@ -66,7 +74,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     match mode.as_str() {
         "info" if args.next().is_none() => Ok(()),
         "listen" | "interactive" | "interactive-line" | "interactive-run" => {
-            // TARGET — сигнатура функции, на которой ставим точку остановки.
+            // По сигнатуре выбираем функцию для точки остановки.
             let target = args
                 .next()
                 .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))?;
@@ -187,6 +195,7 @@ fn print_proxy_info(debugger: &mut PldbgClient) -> Result<(), postgres::Error> {
     println!("PostgreSQL: {}", info.server_version);
     println!("Server version number: {}", info.server_version_num);
     println!("pldbgapi protocol version: {}", info.proxy_api_version);
+    println!("Plugin build PostgreSQL: {}", info.plugin_build_version);
     println!("Proxy backend PID: {}", info.proxy_pid);
     Ok(())
 }
@@ -231,17 +240,17 @@ fn run_demo() -> Result<(), Box<dyn Error>> {
     loop {
         println!();
         if owned.is_some() {
-            println!("1 — быстрый показ: автоматический шаг (Enter)");
-            println!("2 — ручная отладка тестовой функции");
-            println!("3 — вызвать тестовую функцию через свой psql");
-            println!("4 — пример функции с ошибкой");
+            println!("1 - быстрый показ: автоматический шаг (Enter)");
+            println!("2 - ручная отладка тестовой функции");
+            println!("3 - вызвать тестовую функцию через свой psql");
+            println!("4 - пример функции с ошибкой");
         }
         println!(
-            "5 — проверить выбранную функцию или процедуру до запуска{}",
+            "5 - проверить выбранную функцию или процедуру до запуска{}",
             if owned.is_none() { " (Enter)" } else { "" }
         );
-        println!("6 — отладить выбранную функцию или процедуру");
-        println!("0 — выход");
+        println!("6 - отладить выбранную функцию или процедуру");
+        println!("0 - выход");
         print!("Режим: ");
         io::stdout().flush()?;
 
@@ -342,7 +351,7 @@ fn connect_existing(port: u16) -> Result<Option<String>, Box<dyn Error>> {
     }
     println!("Порт {port} занят. Для подключения к PostgreSQL укажите пользователя и базу.");
     loop {
-        let user = prompt("Пользователь [postgres], 0 — выбрать другой порт: ")?;
+        let user = prompt("Пользователь [postgres], 0 - выбрать другой порт: ")?;
         if user == "0" {
             return Ok(None);
         }
@@ -373,7 +382,7 @@ fn custom_session(connection: &str) -> Result<(), Box<dyn Error>> {
     let target = prompt("Сигнатура функции/процедуры: ")?;
     let report = preflight::check(connection, &target)?;
     show_preflight(&target, &report);
-    let raw_line = prompt("Строка первой остановки (Enter — на входе): ")?;
+    let raw_line = prompt("Строка первой остановки (Enter - на входе): ")?;
     let requested_line = if raw_line.is_empty() {
         None
     } else {
@@ -388,7 +397,7 @@ fn custom_session(connection: &str) -> Result<(), Box<dyn Error>> {
         }
         line = initial_breakpoint_line(&report.source, requested);
     }
-    let mode = prompt("Вызов: 1 — выполнить SQL здесь, 2 — ждать другой клиент/ORM [1]: ")?;
+    let mode = prompt("Вызов: 1 - выполнить SQL здесь, 2 - ждать другой клиент/ORM [1]: ")?;
     let mut debugger = PldbgClient::connect(connection)?;
     print_proxy_info(&mut debugger).map_err(|error| {
         io::Error::other(format!(
@@ -419,7 +428,7 @@ fn manual_psql_demo(
     debugger: &mut PldbgClient,
 ) -> Result<(), Box<dyn Error>> {
     let listener = prepare_session(debugger, "public.debug_smoke(integer)", None)?;
-    println!("Откройте второе окно cmd.exe и выполните команду:");
+    println!("Откройте второй терминал и выполните команду:");
     println!(
         "\"{}\" -h 127.0.0.1 -p {} -U debugger_test -d postgres -X -c \"SELECT public.debug_smoke(3);\"",
         server.psql_path().display(),
@@ -546,16 +555,65 @@ fn interactive_run(
     let listener = prepare_session(debugger, target, line)?;
     let connection_string = connection_string.to_owned();
     let sql = sql.to_owned();
-    // Целевой SQL запускаем отдельно: на breakpoint он будет ждать наших команд.
-    let target_thread = thread::spawn(move || target::execute(&connection_string, &sql));
-
-    wait_for_session(debugger, listener)?;
-    interactive_loop(debugger, listener, target)?;
-    // Результат SQL получаем отдельно от события закрытия канала отладки.
-    let outcome = target_thread
+    let cancellation = Arc::new(target::Cancellation::default());
+    let target_cancel = cancellation.clone();
+    let (done, result) = channel();
+    let target_thread = thread::spawn(move || {
+        let outcome = target::execute(&connection_string, &sql, &target_cancel);
+        let _ = done.send(outcome);
+    });
+    let waiting = Arc::new(AtomicBool::new(true));
+    let monitor_waiting = waiting.clone();
+    let proxy_cancel = debugger.cancel_token();
+    let monitor_cancel = cancellation.clone();
+    // Ранняя ошибка SQL должна прервать серверное ожидание listener.
+    // Повторная отмена закрывает гонку, когда proxy ещё не начал ждать.
+    let monitor = thread::spawn(move || -> Result<TargetOutcome, io::Error> {
+        let outcome = loop {
+            match result.recv_timeout(Duration::from_millis(150)) {
+                Ok(outcome) => break Ok(outcome),
+                Err(RecvTimeoutError::Timeout) => {
+                    if monitor_cancel.requested() {
+                        monitor_cancel.cancel();
+                    }
+                }
+                Err(RecvTimeoutError::Disconnected) => {
+                    break Err(io::Error::other("Поток целевого SQL прервался."));
+                }
+            }
+        };
+        while monitor_waiting.load(Ordering::Acquire) {
+            let _ = proxy_cancel.cancel_query(postgres::NoTls);
+            thread::sleep(Duration::from_millis(100));
+        }
+        outcome
+    });
+    let first_stop = wait_for_session(debugger, listener);
+    waiting.store(false, Ordering::Release);
+    let attached = first_stop.is_ok();
+    let debug_result = first_stop.and_then(|()| interactive_loop(debugger, listener, target));
+    if debug_result.is_err() {
+        if attached {
+            let _ = debugger.abort(listener);
+        }
+        cancellation.cancel();
+    }
+    let outcome = monitor
+        .join()
+        .map_err(|_| io::Error::other("Поток наблюдения за SQL прервался."))?;
+    target_thread
         .join()
         .map_err(|_| io::Error::other("Target SQL worker panicked"))?;
-    report_target_outcome(outcome)
+    let target_result = report_target_outcome(outcome?);
+    if !attached {
+        target_result?;
+        return Err(io::Error::other(
+            "SQL завершился до первой остановки. Проверь соответствие выбранной функции и вызова.",
+        )
+        .into());
+    }
+    target_result?;
+    debug_result
 }
 
 // Читаем команды, пока целевая функция остановлена.
@@ -741,8 +799,13 @@ fn print_variables(debugger: &mut PldbgClient, listener: i32) -> Result<(), post
     println!("Variables:");
     for variable in debugger.get_variables(listener)? {
         let value = variable.value.as_deref().unwrap_or("<NULL>");
+        let suffix = if variable.value_truncated {
+            " … [показан фрагмент]"
+        } else {
+            ""
+        };
         println!(
-            "  {} (declared at line {}): {value}",
+            "  {} (declared at line {}): {value}{suffix}",
             variable.name, variable.declaration_line
         );
     }
@@ -754,8 +817,13 @@ fn print_stack(debugger: &mut PldbgClient, listener: i32) -> Result<(), postgres
     println!("Call stack:");
     for frame in debugger.get_stack(listener)? {
         let arguments = frame.arguments.as_deref().unwrap_or("<none>");
+        let suffix = if frame.arguments_truncated {
+            " … [показан фрагмент]"
+        } else {
+            ""
+        };
         println!(
-            "  #{} {} (line {}, args: {arguments})",
+            "  #{} {} (line {}, args: {arguments}{suffix})",
             frame.level, frame.target_name, frame.line_number
         );
     }

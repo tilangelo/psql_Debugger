@@ -1,1 +1,4 @@
 /target
+/core/target
+/web/server/target
+/web/prototype/node_modules/

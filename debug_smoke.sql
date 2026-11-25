@@ -12,7 +12,7 @@ BEGIN
 END;
 $$;
 
--- Отдельно проверяем объект PROCEDURE: поддержка FUNCTION не доказывает его поддержку.
+-- Отдельно проверяем объект PROCEDURE
 CREATE OR REPLACE PROCEDURE public.debug_smoke_proc(input_value integer)
 LANGUAGE plpgsql
 AS $$

@@ -1,0 +1,14 @@
+import assert from 'assert';
+import {createHistory} from './history.js';
+let clock=0;const history=createHistory({name:'before'},{now:()=>clock});
+history.record({name:'a'},{group:'name'});clock+=100;history.record({name:'ab'},{group:'name'});
+assert.deepEqual(history.undo(),{name:'before'});assert.deepEqual(history.redo(),{name:'ab'});
+history.breakGroup();history.record({blocks:[{id:'if',then:[{id:'inside'}],else:[]}]});
+assert.deepEqual(history.undo(),{name:'ab'});assert.equal(history.redo().blocks[0].then[0].id,'inside');
+history.undo();history.record({name:'new branch'});assert.equal(history.available().redo,false);
+console.log('PASS history: grouped input, complete nested snapshots and redo invalidation');
+const bounded=createHistory({n:0},{limit:3});for(let n=1;n<8;n++)bounded.record({n});
+assert.equal(bounded.undo().n,6);assert.equal(bounded.undo().n,5);assert.equal(bounded.undo(),null);
+const immutable=createHistory({blocks:[1]});const value=immutable.current();value.blocks.push(2);assert.deepEqual(immutable.current(),{blocks:[1]});
+assert.throws(()=>immutable.record({value:'x'.repeat(8_000_001)}),/большой/);
+console.log('PASS history: bounded retention and detached snapshots');

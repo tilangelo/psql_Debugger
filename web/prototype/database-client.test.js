@@ -1,0 +1,28 @@
+import assert from 'assert';
+const events=[];
+globalThis.document={querySelector:()=>({content:'local-test-token'}),dispatchEvent:event=>events.push(event.detail.busy)};
+globalThis.CustomEvent=class { constructor(type,options){this.type=type;this.detail=options.detail;} };
+const {requestDatabase}=await import('./database-client.js');
+const response=value=>({ok:true,status:200,json:async()=>value});
+let release, calls=[];
+globalThis.fetch=async(path,options)=>{
+  calls.push(path);
+  assert.equal(options.headers['x-pg-debugger-token'],'local-test-token');
+  if(path==='/first')await new Promise(resolve=>{release=resolve;});
+  return response({path});
+};
+const first=requestDatabase('/first',{}), second=requestDatabase('/second',{});
+await Promise.resolve();
+assert.deepEqual(calls,['/first']);
+release();
+assert.deepEqual(await Promise.all([first,second]),[{path:'/first'},{path:'/second'}]);
+assert.deepEqual(calls,['/first','/second']);assert.equal(events[events.length-1],false);
+console.log('PASS database client: serial requests and busy state');
+globalThis.fetch=async path=>path==='/failure'?{ok:false,status:409,json:async()=>({error:'Object changed'})}:response({ok:true});
+const failed=requestDatabase('/failure',{}), next=requestDatabase('/after-failure',{});
+await assert.rejects(failed,/Object changed/);
+assert.deepEqual(await next,{ok:true});assert.equal(events[events.length-1],false);
+console.log('PASS database client: failure does not block later requests');
+globalThis.fetch=async()=>({ok:false,status:400,json:async()=>({error:'Syntax error',location:{line:3,column:9}})});
+await assert.rejects(requestDatabase('/api/body/prepare',{}),error=>error.message==='Syntax error'&&error.location.line===3&&error.location.column===9);
+console.log('PASS database client: structured source location reaches editor without parsing error text');

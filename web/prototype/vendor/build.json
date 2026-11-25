@@ -1,0 +1,8 @@
+{
+  "editor-src/code-editor.js": "f76c9be24ae246c12ec9e70b9014742ad715b7f94d9ca01626168c64514da789",
+  "build-editor.mjs": "3ecce971da5c6282e07f3479bfd948128e15ba5c3ea1e192fca694f23cc1fbdc",
+  "package.json": "8e94025809a0d6ca8d65595ab5f8e40a855a08b089b12f69a64bee17ede0eddb",
+  "package-lock.json": "2684ad9a488a2f9dd5bcf50fd1576e4601c278b4cfa49c732cf124ef26e6c36d",
+  "vendor/code-editor.js": "6c372cbb1cfd4f2da44cb26ea7a068c6cf40b127b9a8ca4a9229f14cab2c05e8",
+  "vendor/THIRD_PARTY_LICENSES.txt": "1eee33e16dd1bdf64393ee5b9bc4a77a1277b8e6f4543e41e64f9d898f23c9e1"
+}

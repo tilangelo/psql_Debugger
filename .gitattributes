@@ -1,0 +1,4 @@
+web/prototype/editor-src/*.js text eol=lf
+web/prototype/build-editor.mjs text eol=lf
+web/prototype/package*.json text eol=lf
+web/prototype/vendor/* text eol=lf

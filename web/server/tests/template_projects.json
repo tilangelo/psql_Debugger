@@ -1,0 +1,168 @@
+[
+  {
+    "schemaVersion": 3,
+    "model": {
+      "name": "Подписи сохраняются",
+      "tables": []
+    },
+    "kind": "function",
+    "schema": "public",
+    "name": "template_lookup",
+    "returnType": "text",
+    "parameters": [
+      {
+        "name": "input_value",
+        "type": "integer"
+      }
+    ],
+    "variables": [
+      {
+        "name": "result_value",
+        "type": "text",
+        "initial": ""
+      }
+    ],
+    "blocks": [
+      {
+        "id": "template_1",
+        "type": "select",
+        "target": "result_value",
+        "query": "SELECT (\n    SELECT \"__pgdbg_row\".\"status\"\n    FROM \"template_checks\".\"orders\" AS \"__pgdbg_row\"\n    WHERE \"__pgdbg_row\".\"id\" = $1\n)",
+        "assistant": {
+          "schema": "template_checks",
+          "table": "orders",
+          "mode": "value",
+          "column": {
+            "side": "source",
+            "name": "status"
+          },
+          "filter": {
+            "side": "source",
+            "name": "id",
+            "parameter": "input_value"
+          },
+          "join": null
+        }
+      },
+      {
+        "id": "template_2",
+        "type": "return",
+        "expression": "result_value"
+      }
+    ]
+  },
+  {
+    "schemaVersion": 3,
+    "model": {
+      "name": "Подписи сохраняются",
+      "tables": []
+    },
+    "kind": "function",
+    "schema": "public",
+    "name": "template_sum",
+    "returnType": "bigint",
+    "parameters": [],
+    "variables": [
+      {
+        "name": "result_value",
+        "type": "bigint",
+        "initial": ""
+      }
+    ],
+    "blocks": [
+      {
+        "id": "template_3",
+        "type": "select",
+        "target": "result_value",
+        "query": "SELECT pg_catalog.sum(\"__pgdbg_row\".\"amount\")\nFROM \"template_checks\".\"orders\" AS \"__pgdbg_row\"",
+        "assistant": {
+          "schema": "template_checks",
+          "table": "orders",
+          "mode": "sum",
+          "column": {
+            "side": "source",
+            "name": "amount"
+          },
+          "filter": null,
+          "join": null
+        }
+      },
+      {
+        "id": "template_4",
+        "type": "return",
+        "expression": "result_value"
+      }
+    ]
+  },
+  {
+    "schemaVersion": 3,
+    "model": {
+      "name": "Подписи сохраняются",
+      "tables": []
+    },
+    "kind": "procedure",
+    "schema": "public",
+    "name": "template_status",
+    "returnType": "integer",
+    "parameters": [
+      {
+        "name": "input_value",
+        "type": "integer"
+      },
+      {
+        "name": "new_value",
+        "type": "text"
+      }
+    ],
+    "variables": [
+      {
+        "name": "changed_rows",
+        "type": "integer",
+        "initial": ""
+      }
+    ],
+    "blocks": [
+      {
+        "id": "template_5",
+        "type": "sql",
+        "sql": "UPDATE \"template_checks\".\"orders\"\nSET \"status\" = $2\nWHERE \"id\" = $1;"
+      },
+      {
+        "id": "template_6",
+        "type": "sql",
+        "sql": "GET DIAGNOSTICS \"changed_rows\" = ROW_COUNT;"
+      },
+      {
+        "id": "template_7",
+        "type": "if",
+        "condition": "\"changed_rows\" = 0",
+        "then": [
+          {
+            "id": "template_8",
+            "type": "sql",
+            "sql": "RAISE EXCEPTION 'Запись не найдена' USING ERRCODE = 'P0002';"
+          }
+        ],
+        "else": []
+      },
+      {
+        "id": "template_9",
+        "type": "if",
+        "condition": "\"changed_rows\" > 1",
+        "then": [
+          {
+            "id": "template_10",
+            "type": "sql",
+            "sql": "RAISE EXCEPTION 'Фильтр затронул несколько записей' USING ERRCODE = '21000';"
+          }
+        ],
+        "else": []
+      },
+      {
+        "id": "template_11",
+        "type": "return",
+        "expression": ""
+      }
+    ]
+  }
+]

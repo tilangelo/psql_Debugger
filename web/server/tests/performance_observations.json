@@ -1,0 +1,112 @@
+{
+  "date": "2026-11-18",
+  "environment": "Separate Chrome headless 1440x1000, native Windows dev server, PostgreSQL 17.11; release memory series uses extracted Windows executable",
+  "baseline": {
+    "label": "baseline",
+    "project": {
+      "import_ms": 234.0,
+      "edit_ms": [
+        23.200000047683716,
+        16.399999976158142,
+        14.799999952316284,
+        15,
+        18.300000071525574,
+        14.099999904632568,
+        18.90000009536743,
+        13.599999904632568,
+        19.600000023841858,
+        17,
+        12.700000047683716,
+        15.799999952316284,
+        18.100000023841858,
+        14.5,
+        13.899999976158142,
+        28.299999952316284,
+        16.600000023841858,
+        15.899999976158142,
+        16.700000047683716,
+        17.199999928474426
+      ],
+      "median_edit_ms": 16.5,
+      "p95_edit_ms": 23.2,
+      "nodes": 7141,
+      "heap_bytes": 4607624
+    },
+    "catalog": {
+      "load_1001_ms": 360.0,
+      "search_ms": [
+        2.600000023841858,
+        0.5,
+        0.10000002384185791,
+        2.399999976158142,
+        3.700000047683716
+      ]
+    },
+    "body": {
+      "load_ms": 1453.0,
+      "source_nodes": 10005,
+      "edit_ms": 3487.5,
+      "edit_wall_ms": 0.0,
+      "heap_bytes": 11565288
+    }
+  },
+  "optimized": {
+    "label": "optimized",
+    "project": {
+      "import_ms": 312.0,
+      "edit_ms": [
+        7.5,
+        7.100000023841858,
+        5.199999928474426,
+        8,
+        6,
+        5.799999952316284,
+        6.600000023841858,
+        5.200000047683716,
+        4.199999928474426,
+        8.400000095367432,
+        3.100000023841858,
+        2.899999976158142,
+        2.700000047683716,
+        4.899999976158142,
+        6.200000047683716,
+        6.600000023841858,
+        4.199999928474426,
+        5.899999976158142,
+        4.5,
+        8.5
+      ],
+      "median_edit_ms": 5.8,
+      "p95_edit_ms": 8.4,
+      "nodes": 6470,
+      "heap_bytes": 3941460
+    },
+    "catalog": {
+      "load_1001_ms": 421.0,
+      "search_ms": [
+        4.100000023841858,
+        0.5,
+        0.20000004768371582,
+        2.1999999284744263,
+        3.600000023841858
+      ]
+    },
+    "body": {
+      "load_ms": 500.0,
+      "source_nodes": 400,
+      "edit_ms": 3032.5,
+      "edit_wall_ms": 46.0,
+      "heap_bytes": 7861544
+    }
+  },
+  "release_heap_after_gc_0_10_20_30_cycles": [
+    5320972,
+    6459448,
+    6585156,
+    6647352
+  ],
+  "notes": [
+    "Baseline is source after usability steps 1-6, before step 7, not the published 0.6.0 archive.",
+    "Single-machine measurements; import/catalog speedup and universal absence of leaks are not established."
+  ]
+}

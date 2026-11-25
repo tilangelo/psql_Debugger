@@ -1,0 +1,17 @@
+import assert from 'assert';
+import {createMetadataReader} from './metadata-reader.js';
+let clock=0,calls=0,release;
+const reader=createMetadataReader(async()=>{calls++;return {metadata:{version:calls}};},()=>clock);
+assert.deepEqual(await reader.read({schema:'x'}),{version:1});
+await reader.read({schema:'x'});assert.equal(calls,1);
+clock=30001;await reader.read({schema:'x'});assert.equal(calls,2);
+reader.clear();await reader.read({schema:'x'});assert.equal(calls,3);
+console.log('PASS metadata reader: shared TTL and explicit invalidation');
+calls=0;
+const concurrent=createMetadataReader(()=>{calls++;return new Promise(resolve=>release=resolve);});
+const first=concurrent.read({schema:'x'}),second=concurrent.read({schema:'x'});
+assert.equal(calls,1);release({metadata:{version:1}});await Promise.all([first,second]);
+console.log('PASS metadata reader: concurrent editor/helper requests are deduplicated');
+const stale=concurrent.read({schema:'y'});concurrent.clear();release({metadata:{version:2}});await stale;
+const next=concurrent.read({schema:'y'});assert.equal(calls,3);release({metadata:{version:3}});assert.deepEqual(await next,{version:3});
+console.log('PASS metadata reader: old in-flight result cannot refill cleared cache');

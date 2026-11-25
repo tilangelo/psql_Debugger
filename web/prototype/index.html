@@ -1,0 +1,52 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Конструктор функций PostgreSQL</title><!--SERVER_BOOT--><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="workspace.css">
+<header class="app-header"><div class="brand"><b>PG</b><span>PostgreSQL Debugger<small></small></span></div><nav><button id="database-toggle" hidden>Подключиться</button><button id="help-open" aria-haspopup="dialog">Справка</button></nav></header>
+<div class="notice" hidden></div>
+<section id="recovery-notices" aria-label="Восстановление работы"></section>
+<section id="start-screen" hidden aria-labelledby="start-title"><h1 id="start-title">С чего начать?</h1><div class="start-choices"><section><button id="start-connect">Подключиться к базе</button></section><section><button id="start-demo">Открыть тестовый пример</button></section><section><button id="start-constructor">Открыть конструктор</button></section></div></section>
+<nav class="workspace-tabs" role="tablist" aria-label="Рабочая область"><button id="view-catalog" role="tab" aria-controls="database-panel" aria-selected="false" hidden>Каталог</button><button id="view-constructor" role="tab" aria-controls="constructor-view" aria-selected="true">Конструктор</button><button id="view-debug" role="tab" aria-controls="debug-view" aria-selected="false">Отладка</button><button id="view-editor" role="tab" aria-controls="editor-view" aria-selected="false">Редактор тела</button><span id="execution-state" role="status"></span></nav>
+<section id="database-panel" hidden role="tabpanel" aria-labelledby="view-catalog"></section>
+<dialog id="connection-dialog" aria-labelledby="connection-title"></dialog>
+<section id="debug-view" role="tabpanel" aria-labelledby="view-debug" hidden><p id="debug-empty">Подключитесь к PostgreSQL и выберите функцию или процедуру в каталоге.</p></section><section id="editor-view" role="tabpanel" aria-labelledby="view-editor" hidden></section><main id="constructor-view" role="tabpanel" aria-labelledby="view-constructor">
+  <aside class="constructor-sidebar" aria-label="Настройки проекта">
+    <h1 id="title">Конструктор</h1>
+    <div class="constructor-tools">
+      <button id="new-project">Новый проект</button>
+      <button id="undo" disabled>Отменить</button>
+      <button id="redo" disabled>Повторить</button>
+      <button id="save">Сохранить проект</button>
+      <details class="compact-menu" id="project-menu">
+        <summary>Проект</summary>
+        <div class="compact-menu-items">
+          <label class="button">Открыть файл<input type="file" id="import" accept=".json" hidden></label>
+          <button id="export">Скачать файл</button>
+        </div>
+      </details>
+      <div id="constructor-db-actions"></div>
+      <button id="restore-graph" hidden disabled>Восстановить блоки</button>
+    </div>
+    <p id="restore-graph-status" role="status"></p>
+    <p id="constructor-db-status" role="status"></p>
+    <details class="object-settings" open><summary>Параметры объекта</summary><div class="signature"><label>Схема<input id="schema" spellcheck="false"></label><label>Имя<input id="name" spellcheck="false" placeholder="Имя объекта"></label><label>Тип объекта<select id="kind"><option value="function">Функция</option><option value="procedure">Процедура</option></select></label><label id="return-label">Результат<select id="return-type"></select></label></div><details id="catalog-types" hidden><summary>Типы из базы</summary><div class="catalog-type-fields"><label>Схема типов<select id="type-schema"></select></label><button id="load-types">Загрузить типы базы</button><span id="type-status" role="status"></span></div></details><div class="declarations"><section id="parameters" aria-label="Параметры конструктора"></section><section id="variables" aria-label="Переменные конструктора"></section></div></details>
+  </aside>
+  <section class="workspace" aria-label="Схема выполнения">
+    <div class="flow-toolbar">
+      <div id="palette" role="group" aria-label="Добавить блок"></div>
+      <details class="compact-menu" id="palette-more" hidden><summary>Ещё</summary><div class="compact-menu-items" id="palette-extra"></div></details>
+      <label class="insertion-choice">Вставить<select id="branch"><option value="after">После выбранного</option><option value="before">Перед выбранным</option><option value="then">В ветвь «Да»</option><option value="else">В ветвь «Нет»</option><option value="body">В тело цикла</option></select></label>
+      <button id="show-code">PL/pgSQL</button>
+    </div>
+    <div id="errors" role="status"></div>
+    <div id="flow" class="flow" aria-label="Блоки схемы" tabindex="0"></div>
+  </section>
+</main>
+<footer id="constructor-status"><span id="status" role="status"></span></footer>
+<dialog id="code-pane" aria-labelledby="generated-code-title">
+  <div class="code-head">
+    <h2 id="generated-code-title">PL/pgSQL</h2>
+    <button id="copy">Копировать</button>
+    <form method="dialog"><button>Закрыть</button></form>
+  </div>
+  <pre id="code" tabindex="0" aria-label="Сгенерированный код"></pre>
+  <p id="copy-status" role="status"></p>
+</dialog>
+<dialog id="block-dialog" aria-labelledby="block-dialog-title"><form method="dialog"><button class="dialog-close">Закрыть</button></form><h2 id="block-dialog-title">Добавить блок</h2><div id="block-options"></div></dialog><script type="module" src="help.js"></script><script type="module" src="app.js"></script></html>

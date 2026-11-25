@@ -168,16 +168,7 @@ impl DemoServer {
     // Останавливаем только собственный тестовый кластер.
     pub fn shutdown(&mut self) -> Result<(), Box<dyn Error>> {
         if self.running {
-            checked_command(
-                Command::new(self.pg_home.join("bin/pg_ctl.exe"))
-                    .arg("-D")
-                    .arg(&self.data_dir)
-                    .arg("-m")
-                    .arg("fast")
-                    .arg("-w")
-                    .arg("stop"),
-                "pg_ctl stop",
-            )?;
+            pg_debugger::pg_process::stop(&self.pg_home.join("bin/pg_ctl.exe"), &self.data_dir)?;
             self.running = false;
         }
         Ok(())

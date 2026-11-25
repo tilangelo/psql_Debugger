@@ -1,4 +1,26 @@
-use postgres::{Client, NoTls, SimpleQueryMessage};
+use postgres::{CancelToken, Client, NoTls, SimpleQueryMessage};
+use std::sync::{
+    Mutex,
+    atomic::{AtomicBool, Ordering},
+};
+
+#[derive(Default)]
+pub struct Cancellation {
+    requested: AtomicBool,
+    token: Mutex<Option<CancelToken>>,
+}
+
+impl Cancellation {
+    pub fn cancel(&self) {
+        self.requested.store(true, Ordering::Release);
+        if let Some(token) = self.token.lock().ok().and_then(|token| token.clone()) {
+            let _ = token.cancel_query(NoTls);
+        }
+    }
+    pub fn requested(&self) -> bool {
+        self.requested.load(Ordering::Acquire)
+    }
+}
 
 // Строки, которые вернул целевой SQL.
 pub struct TargetResult {
@@ -15,10 +37,18 @@ pub enum TargetOutcome {
 }
 
 // Выполняем SQL и сохраняем его исход отдельно от отладки.
-pub fn execute(connection_string: &str, sql: &str) -> TargetOutcome {
+pub fn execute(connection_string: &str, sql: &str, cancellation: &Cancellation) -> TargetOutcome {
     // Исход SQL хранится отдельно от состояния отладчика.
-    match run(connection_string, sql) {
-        Ok(result) => TargetOutcome::Succeeded(result),
+    let result = run(connection_string, sql, cancellation);
+    if let Ok(mut token) = cancellation.token.lock() {
+        token.take();
+    }
+    match result {
+        Ok(Some(result)) => TargetOutcome::Succeeded(result),
+        Ok(None) => TargetOutcome::Failed {
+            sqlstate: Some("57014".into()),
+            message: "Вызов отменён до выполнения SQL.".into(),
+        },
         Err(error) => {
             // У ошибки PostgreSQL берём SQLSTATE; у ошибки соединения его может не быть.
             let sqlstate = error
@@ -34,9 +64,19 @@ pub fn execute(connection_string: &str, sql: &str) -> TargetOutcome {
 }
 
 // Отправляем целевой SQL через отдельное соединение с PostgreSQL.
-fn run(connection_string: &str, sql: &str) -> Result<TargetResult, postgres::Error> {
+fn run(
+    connection_string: &str,
+    sql: &str,
+    cancellation: &Cancellation,
+) -> Result<Option<TargetResult>, postgres::Error> {
     // Здесь открываем второе соединение, как раньше делали через psql.
     let mut client = Client::connect(connection_string, NoTls)?;
+    if let Ok(mut token) = cancellation.token.lock() {
+        *token = Some(client.cancel_token());
+    }
+    if cancellation.requested() {
+        return Ok(None);
+    }
     let mut rows = Vec::new();
 
     // simple_query отдаёт значения текстом; оставляем строки результата.
@@ -49,5 +89,5 @@ fn run(connection_string: &str, sql: &str) -> Result<TargetResult, postgres::Err
         }
     }
 
-    Ok(TargetResult { rows })
+    Ok(Some(TargetResult { rows }))
 }

@@ -1,0 +1,72 @@
+[
+  {
+    "name": "inner_value",
+    "query": "SELECT (\n    SELECT \"__pgdbg_join\".\"label\"\n    FROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\n    INNER JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n        ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"\n    WHERE \"__pgdbg_row\".\"id\" = $1\n)",
+    "returnType": "text",
+    "argument": 11,
+    "expected": "A"
+  },
+  {
+    "name": "composite_value",
+    "query": "SELECT (\n    SELECT \"__pgdbg_join\".\"label\"\n    FROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\n    INNER JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n        ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"\n    WHERE \"__pgdbg_row\".\"id\" = $1\n)",
+    "returnType": "text",
+    "argument": 12,
+    "expected": "B"
+  },
+  {
+    "name": "left_null",
+    "query": "SELECT (\n    SELECT \"__pgdbg_join\".\"label\"\n    FROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\n    LEFT JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n        ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"\n    WHERE \"__pgdbg_row\".\"id\" = $1\n)",
+    "returnType": "text",
+    "argument": 13,
+    "expected": null
+  },
+  {
+    "name": "inner_count",
+    "query": "SELECT pg_catalog.count(*)\nFROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\nINNER JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n    ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"",
+    "returnType": "integer",
+    "argument": 0,
+    "expected": "2"
+  },
+  {
+    "name": "left_count",
+    "query": "SELECT pg_catalog.count(*)\nFROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\nLEFT JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n    ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"",
+    "returnType": "integer",
+    "argument": 0,
+    "expected": "3"
+  },
+  {
+    "name": "left_sum",
+    "query": "SELECT pg_catalog.sum(\"__pgdbg_row\".\"amount\")\nFROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\nLEFT JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n    ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"",
+    "returnType": "integer",
+    "argument": 0,
+    "expected": "60"
+  },
+  {
+    "name": "self_value",
+    "query": "SELECT (\n    SELECT \"__pgdbg_join\".\"name\"\n    FROM \"join_checks\".\"staff\" AS \"__pgdbg_row\"\n    LEFT JOIN \"join_checks\".\"staff\" AS \"__pgdbg_join\"\n        ON \"__pgdbg_row\".\"manager_id\" = \"__pgdbg_join\".\"id\"\n    WHERE \"__pgdbg_row\".\"id\" = $1\n)",
+    "returnType": "text",
+    "argument": 2,
+    "expected": "Boss"
+  },
+  {
+    "name": "many_rows",
+    "query": "SELECT (\n    SELECT \"__pgdbg_join\".\"label\"\n    FROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\n    INNER JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n        ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"\n)",
+    "returnType": "text",
+    "argument": 0,
+    "expectedError": "21000"
+  },
+  {
+    "name": "chain_value",
+    "query": "SELECT (\n    SELECT \"__pgdbg_join_2\".\"label\"\n    FROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\n    INNER JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n        ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"\n    LEFT JOIN \"join_checks\".\"region\" AS \"__pgdbg_join_2\"\n        ON \"__pgdbg_join\".\"region_id\" = \"__pgdbg_join_2\".\"tenant\"\n    WHERE \"__pgdbg_row\".\"id\" = $1\n)",
+    "returnType": "text",
+    "argument": 11,
+    "expected": "North"
+  },
+  {
+    "name": "chain_null",
+    "query": "SELECT (\n    SELECT \"__pgdbg_join_2\".\"label\"\n    FROM \"join_checks\".\"child\" AS \"__pgdbg_row\"\n    INNER JOIN \"join_checks\".\"parent\" AS \"__pgdbg_join\"\n        ON \"__pgdbg_row\".\"tenant\" = \"__pgdbg_join\".\"tenant\" AND \"__pgdbg_row\".\"parent_key\" = \"__pgdbg_join\".\"key\"\n    LEFT JOIN \"join_checks\".\"region\" AS \"__pgdbg_join_2\"\n        ON \"__pgdbg_join\".\"region_id\" = \"__pgdbg_join_2\".\"tenant\"\n    WHERE \"__pgdbg_row\".\"id\" = $1\n)",
+    "returnType": "text",
+    "argument": 12,
+    "expected": null
+  }
+]

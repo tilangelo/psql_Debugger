@@ -1,0 +1,22 @@
+{
+  "name": "pg-function-constructor-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node model.test.js && node select-builder.test.js && node database-client.test.js && node model-hints.test.js && node join.test.js && node select-settings.test.js && node templates.test.js && node diagnostic-report.test.js && node readiness.test.js && node metadata-reader.test.js && node sql-completions.test.js && node history.test.js && node recovery-store.test.js && node body-target.test.js && node debug-presentation.test.js && node data-types.test.js && node work-presets.test.js",
+    "build:editor": "node build-editor.mjs"
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "6.20.4",
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-sql": "6.10.0",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/search": "6.7.2",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "esbuild": "0.28.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

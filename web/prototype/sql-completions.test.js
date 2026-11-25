@@ -1,0 +1,18 @@
+import assert from 'assert';
+import {completionContext,completionOptions,declaredVariables} from './sql-completions.js';
+for(const source of ["SELECT 'o.na",'SELECT /* nested /* x */ o.na','SELECT -- o.na','DO $tag$o.na'])assert.equal(completionContext(source),null);
+assert.equal(completionContext('SELECT /* done */ o.na').word,'na');
+assert.deepEqual(declaredVariables('DECLARE total integer:=3; "Mixed Name" CONSTANT text; BEGIN RETURN total; END;'),[{name:'total',type:'integer'},{name:'Mixed Name',type:'text'}]);
+console.log('PASS completions: strings, nested comments, dollar literals and local declarations');
+const relation={schema:'sales',name:'orders',comment:'Orders'},details={columns:[{name:'status',data_type:'text',comment:'Current status'},{name:'Mixed"Name',data_type:'text'}]};
+const common={schemas:['sales'],relations:[relation],tables:[{relation,details}],parameters:[{name:'input_id',type:'integer',mode:'IN'}],model:{name:'x',tables:[{schema:'sales',name:'orders',label:'Заказы',columns:[{name:'status',label:'Состояние',values:[{value:'paid',label:'Оплачен'}]}]}]}};
+let result=completionOptions({...common,source:'SELECT 1 FROM sales.orders AS o WHERE o.sta'});
+assert.deepEqual(result.qualifier,['o']);assert.equal(result.options[0].label,'status');assert.match(result.options[0].info,/paid - Оплачен/);
+assert.equal(result.options[1].apply,'"Mixed""Name"');
+assert.equal(completionOptions({...common,source:'SELECT sales.or'}).options[0].apply,'"orders"');
+assert.equal(completionOptions({...common,source:'SELECT input_'}).options.find(o=>o.label==='orders').apply,'"sales"."orders"');
+console.log('PASS completions: qualified tables, aliases, quoting, project labels and value hints');
+result=completionOptions({...common,source:'SELECT 1 FROM sales.orders AS o; SELECT o.sta'});assert.equal(result.options.length,0);
+result=completionOptions({...common,tables:[],source:'SELECT o.sta'});assert.equal(result.options.length,0);
+assert(!completionOptions({...common,relations:[],source:'SELECT input_'}).options.some(o=>o.label==='orders'));
+console.log('PASS completions: previous-statement aliases and unloaded/inaccessible objects are not guessed');

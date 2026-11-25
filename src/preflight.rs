@@ -37,7 +37,9 @@ pub fn check(connection_string: &str, target: &str) -> Result<PreflightReport, B
     }
 
     // Валидатор проверяет тело без выполнения функции. SQL внутри тела он не исполняет.
-    client
+    let mut transaction = client.transaction()?;
+    transaction.batch_execute("SET LOCAL check_function_bodies = on")?;
+    transaction
         .query_one("SELECT pg_catalog.plpgsql_validator($1::oid)", &[&oid])
         .map_err(|error| {
             if let Some(db) = error.as_db_error() {
@@ -53,5 +55,6 @@ pub fn check(connection_string: &str, target: &str) -> Result<PreflightReport, B
                 io::Error::other(error.to_string())
             }
         })?;
+    transaction.rollback()?;
     Ok(PreflightReport { kind, source })
 }

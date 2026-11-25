@@ -1,0 +1,11 @@
+import assert from 'assert';
+import {bodyTarget,sameBodyTarget} from './body-target.js';
+import {validateBodyRecovery} from './working-draft.js';
+const catalog={connection_id:7,endpoint:{host:'127.0.0.1',port:5432},database:'demo',current_user:'owner',schema:'public',routines:[{oid:1,name:'f',signature:'',kind:'Функция'}],selected:{oid:1,source:'BEGIN RETURN 1; END;',definition:'CREATE FUNCTION f'}};
+const target=bodyTarget(catalog);assert.equal(target.signature,'');
+assert(sameBodyTarget(target,bodyTarget({...catalog,connection_id:99,selected:{...catalog.selected,oid:2},routines:[{...catalog.routines[0],oid:2}]})));
+for(const patch of [{port:5433},{host:'::1'},{database:'other'},{user:'reader'},{schema:'other'},{signature:'integer'},{name:'g'},{kind:'Процедура'}])assert(!sameBodyTarget(target,{...target,...patch}));
+assert.equal(bodyTarget(null),null);assert.equal(bodyTarget({...catalog,endpoint:null}),null);
+validateBodyRecovery({target,definition:catalog.selected.definition,body:'BEGIN RETURN ; END;'});
+assert(!('connection_id' in target)&&!('oid' in target));
+console.log('PASS body recovery identity: host/port/database/role/signature required, ephemeral IDs excluded');
